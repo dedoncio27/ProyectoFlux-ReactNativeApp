@@ -1,98 +1,195 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Picker } from '@react-native-picker/picker';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [sexo, setSexo] = useState('');
+  const [actividad, setActividad] = useState('');
+  const [objetivo, setObjetivo] = useState('');
+  const [altura, setAltura] = useState('');
+  const [peso, setPeso] = useState('');
+  const [edad, setEdad] = useState('');
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  return (
+    <View style={styles.screen}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Principal</Text>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.contentContainer}>
+        <View style={styles.fieldBlock}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.floatingLabel}>Altura (cm)</Text>
+            <TextInput
+              style={styles.input}
+              value={altura}
+              onChangeText={setAltura}
+              keyboardType="number-pad"
+            />
+          </View>
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.floatingLabel}>Peso (Kg)</Text>
+            <TextInput
+              style={styles.input}
+              value={peso}
+              onChangeText={setPeso}
+              keyboardType="number-pad"
+            />
+          </View>
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.floatingLabel}>Edad</Text>
+            <TextInput
+              style={styles.input}
+              value={edad}
+              onChangeText={setEdad}
+              keyboardType="number-pad"
+            />
+          </View>
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.floatingLabel}>Sexo</Text>
+            <View style={styles.select}>
+              <Picker
+                selectedValue={sexo}
+                onValueChange={(itemValue) => setSexo(itemValue)}
+                style={styles.picker}
+                dropdownIconColor="#5e5e5e">
+                <Picker.Item label="Hombre" value="hombre" />
+                <Picker.Item label="Mujer" value="mujer" />
+              </Picker>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.floatingLabel}>Actividad</Text>
+            <View style={styles.select}>
+              <Picker
+                selectedValue={actividad}
+                onValueChange={(itemValue) => setActividad(itemValue)}
+                style={styles.picker}
+                dropdownIconColor="#5e5e5e">
+                <Picker.Item label="Actividad baja" value="baja" />
+                <Picker.Item label="Actividad media" value="media" />
+                <Picker.Item label="Actividad alta" value="alta" />
+              </Picker>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <View style={styles.inputWrapper}>
+            <Text style={styles.floatingLabel}>Objetivo</Text>
+            <View style={styles.select}>
+              <Picker
+                selectedValue={objetivo}
+                onValueChange={(itemValue) => setObjetivo(itemValue)}
+                style={styles.picker}
+                dropdownIconColor="#5e5e5e">
+                <Picker.Item label="Perder peso" value="perder" />
+                <Picker.Item label="Mantener peso" value="mantener" />
+                <Picker.Item label="Subir de peso lentamente" value="subir_lento" />
+              </Picker>
+            </View>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.saveButton} activeOpacity={0.85}>
+          <Text style={styles.saveButtonText}>Guardar datos</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  screen: {
+    flex: 1,
+    backgroundColor: '#f2f2f2',
   },
-  stepContainer: {
-    gap: 8,
+  header: {
+    backgroundColor: '#1565c0',
+    paddingTop: 56,
+    paddingBottom: 16,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '600',
+  },
+  contentContainer: {
+    paddingHorizontal: 70,
+    paddingTop: 70,
+    paddingBottom: 32,
+  },
+  fieldBlock: {
+    marginBottom: 16,
+  },
+  inputWrapper: {
+    position: 'relative',
+    justifyContent: 'center',
+  },
+  floatingLabel: {
+    position: 'absolute',
+    top: -10,
+    left: 12,
+    zIndex: 1,
+    backgroundColor: '#f2f2f2',
+    paddingHorizontal: 6,
+    fontSize: 16,
+    color: '#5a5a5a',
+  },
+  label: {
+    fontSize: 16,
+    color: '#5a5a5a',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  input: {
+    height: 56,
+    borderWidth: 1,
+    borderColor: '#a8a8a8',
+    borderRadius: 6,
+    backgroundColor: '#f7f7f7',
+    paddingHorizontal: 14,
+    fontSize: 18123,
+    color: '#2f2f2f',
+  },
+  select: {
+    height: 56,
+    borderWidth: 1,
+    borderColor: '#a8a8a8',
+    borderRadius: 6,
+    backgroundColor: '#f7f7f7',
+    paddingHorizontal: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  picker: {
+    flex: 1,
+    color: '#2f2f2f',
+  },
+  saveButton: {
+    marginTop: 18,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#1565c0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '600',
   },
 });
