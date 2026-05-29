@@ -1,10 +1,11 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Icon } from 'react-native-paper';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function TabLayout() {
+
   return (
     <Tabs
       screenOptions={{
@@ -13,6 +14,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
+          paddingTop: 5,
           backgroundColor: '#1565c0',
           borderTopColor: '#1565c0',
         },
@@ -21,21 +23,28 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Principal',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Icon source="home" size={28} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="foodscreen"
         options={{
           title: 'Alimentacion',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="fork.knife" color={color} />,
+          tabBarIcon: ({ color }) => <Icon source="food" size={28} color={color} />,
         }}
       />
       <Tabs.Screen
         name="training"
         options={{
           title: 'Entrenamiento',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="dumbbell.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Icon source="dumbbell" size={28} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Ajustes',
+          tabBarIcon: ({ color }) => <Icon source="cog" size={28} color={color} />,
         }}
       />
     </Tabs>

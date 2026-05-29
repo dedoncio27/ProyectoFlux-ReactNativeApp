@@ -1,173 +1,141 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import {
+  Appbar,
+  Searchbar,
+  SegmentedButtons,
+  useTheme,
+} from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type FoodTabRoute = '/misAlimentos' | '/bibliotecaGlobal' | '/misRecetas';
+export type FoodTabRoute = '/misAlimentos' | '/bibliotecaGlobal' | '/misRecetas';
 
-type FoodBrowserLayoutProps = {
+type FoodTopbarProps = {
   title: string;
   placeholder: string;
   activeTab: FoodTabRoute;
-  emptyText: string;
-  showAddButton?: boolean;
-  addButtonText?: string;
+  query?: string;
+  onQueryChange?: (text: string) => void;
+  right?: React.ReactNode;
 };
 
-const tabs: { label: string; route: FoodTabRoute }[] = [
-  { label: 'Mis alimentos', route: '/misAlimentos' },
-  { label: 'Biblioteca', route: '/bibliotecaGlobal' },
-  { label: 'Mis recetas', route: '/misRecetas' },
+const tabs: { label: string; value: FoodTabRoute }[] = [
+  { label: 'Mis alimentos', value: '/misAlimentos' },
+  { label: 'Biblioteca', value: '/bibliotecaGlobal' },
+  { label: 'Mis recetas', value: '/misRecetas' },
 ];
 
-export function FoodBrowserLayout({
+/**
+ * FoodTopbar es el encabezado común que se usa en la parte superior de 
+ * misAlimentos.tsx, misRecetas.tsx y bibliotecaGlobal.tsx.
+ * Se encarga del buscador y de navegar (router.replace) entre las 3 pantallas.
+ */
+export function FoodTopbar({
   title,
   placeholder,
   activeTab,
-  emptyText,
-  showAddButton = false,
-  addButtonText = '',
-}: FoodBrowserLayoutProps) {
+  query: controlledQuery,
+  onQueryChange,
+  right,
+}: FoodTopbarProps) {
+  const theme = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [localQuery, setLocalQuery] = useState('');
+
+  const query = controlledQuery !== undefined ? controlledQuery : localQuery;
+  const setQuery = onQueryChange || setLocalQuery;
+
+  const handleTabChange = (value: string) => {
+    const route = value as FoodTabRoute;
+    if (route !== activeTab) {
+      router.replace(route as never);
+    }
+  };
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backButton}>
-          <Text style={styles.backIcon}>{'<'}</Text>
-        </Pressable>
-        <Text style={styles.topBarTitle}>{title}</Text>
-      </View>
+    <View style={[styles.headerBlock, { backgroundColor: theme.colors.primary, paddingTop: insets.top, paddingBottom: 0 }]}>
+      <Appbar.Header
+        mode="center-aligned"
+        statusBarHeight={0}
+        style={{
+          height: 170,
+          backgroundColor: theme.colors.primary,
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          justifyContent: 'space-between',
+          paddingBottom: 12,
+        }}
+      >
+        {/* Row 1: Back Action & Title */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', height: 48 }}>
+          <Appbar.BackAction onPress={() => router.back()} iconColor={theme.colors.onPrimary} />
+          <Appbar.Content title={title} titleStyle={{ color: theme.colors.onPrimary, fontWeight: '600', fontSize: 18, alignSelf: 'center' }} />
+          {right && (
+            <View style={styles.rightContainer}>
+              {right}
+            </View>
+          )}
+          <View style={{ width: 48 }} />
+        </View>
 
-      <View style={styles.blueContainer}>
-        <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>Q</Text>
-          <TextInput
+        {/* Row 2: Searchbar */}
+        <View style={{ paddingHorizontal: 12, marginBottom: 12, marginTop: 12 }}>
+          <Searchbar
             placeholder={placeholder}
-            placeholderTextColor="#446185"
-            style={styles.searchInput}
+            value={query}
+            onChangeText={setQuery}
+            style={[styles.searchbar, { backgroundColor: theme.colors.secondary }]}
+            inputStyle={{ color: theme.colors.onSecondaryContainer }}
+            iconColor={theme.colors.onSecondaryContainer}
+            placeholderTextColor={theme.colors.onSurfaceVariant}
+            elevation={0}
           />
         </View>
 
-        <View style={styles.tabRow}>
-          {tabs.map((tab) => (
-            <Pressable
-              key={tab.route}
-              style={styles.tabButton}
-              onPress={() => router.replace(tab.route as never)}>
-              <Text style={styles.tabText}>{tab.label}</Text>
-              <View style={[styles.tabIndicator, activeTab === tab.route && styles.tabIndicatorActive]} />
-            </Pressable>
-          ))}
+        {/* Row 3: SegmentedButtons */}
+        <View style={{ paddingHorizontal: 12 }}>
+          <SegmentedButtons
+            value={activeTab}
+            onValueChange={handleTabChange}
+            density="small"
+            buttons={tabs.map((t) => ({
+              value: t.value,
+              label: t.label,
+              checkedColor: theme.colors.primary,
+              uncheckedColor: theme.colors.onPrimary,
+              style: {
+                backgroundColor: activeTab === t.value ? theme.colors.onPrimary : 'transparent',
+                borderColor: theme.colors.onPrimary,
+              },
+              labelStyle: {
+                fontSize: 13,
+                fontWeight: '600',
+              }
+            }))}
+            style={styles.segmented}
+          />
         </View>
-      </View>
-
-      <View style={styles.content}>
-        {showAddButton && (
-          <Pressable style={styles.addButton}>
-            <Text style={styles.addButtonText}>{addButtonText}</Text>
-          </Pressable>
-        )}
-        <Text style={styles.emptyText}>{emptyText}</Text>
-      </View>
+      </Appbar.Header>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#f2f2f2',
+  headerBlock: {
+    paddingBottom: 12,
+    zIndex: 10,
   },
-  topBar: {
-    backgroundColor: '#1565c0',
-    paddingTop: 54,
-    paddingBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButton: {
-    position: 'absolute',
-    left: 14,
-    bottom: 10,
-  },
-  backIcon: {
-    color: '#fff',
-    fontSize: 28,
-  },
-  topBarTitle: {
-    color: '#fff',
-    fontSize: 40,
-    fontWeight: '600',
-  },
-  blueContainer: {
-    backgroundColor: '#1565c0',
-    paddingHorizontal: 10,
-    paddingBottom: 4,
-  },
-  searchBar: {
-    height: 54,
+  searchbar: {
     borderRadius: 14,
-    backgroundColor: '#4a90dd',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    gap: 10,
-    marginBottom: 8,
   },
-  searchIcon: {
-    color: '#0f284d',
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 18,
-    color: '#0f284d',
-  },
-  tabRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  tabButton: {
-    width: '32%',
-    alignItems: 'center',
-  },
-  tabText: {
-    color: '#e6f0fb',
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  tabIndicator: {
-    width: '100%',
-    height: 2,
-    backgroundColor: 'transparent',
-  },
-  tabIndicatorActive: {
-    backgroundColor: '#cfe3fb',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 10,
-    paddingTop: 12,
-  },
-  addButton: {
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#4a90dd',
+  segmented: {},
+  rightContainer: {
+    width: 48,
+    height: 48,
+    marginRight: -40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 18,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  emptyText: {
-    marginTop: 24,
-    color: '#8a8a8a',
-    fontSize: 24,
-    textAlign: 'center',
   },
 });

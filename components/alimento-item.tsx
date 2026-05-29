@@ -1,9 +1,11 @@
-import { Pressable, StyleSheet, Text, View, type PressableProps, type TextStyle } from 'react-native';
+import { StyleSheet, View, type PressableProps } from 'react-native';
+import { Card, Text, useTheme } from 'react-native-paper';
 
-/** Datos de un alimento para la fila (equivalente al modelo `Alimento` en Kotlin). */
+
 export type AlimentoListItem = {
   nombreAlimento: string;
   cantidad: string;
+  marca?: string;
   medida: string;
   calorias: string;
   carbohidratos: string;
@@ -22,17 +24,14 @@ export type AlimentoItemProps = {
   onPress?: PressableProps['onPress'];
 };
 
-/** Igual que en Kotlin: coma → punto, double → int como string, o "0". */
+
 export function safeToIntString(valor: string): string {
   const parsed = Number.parseFloat(valor.replace(',', '.'));
   if (!Number.isFinite(parsed)) return '0';
   return Math.trunc(parsed).toString();
 }
 
-const palette = {
-  negroPuro: '#000000',
-  grisFuerte: '#5c5c5c',
-  grisSuave: '#9e9e9e',
+const macroPalette = {
   azulCalorias: '#2a62bf',
   rosaCarbos: '#d85cf6',
   azulProte: '#0f59bf',
@@ -40,51 +39,67 @@ const palette = {
 } as const;
 
 export function MacroMiniText({ label, value, color }: MacroMiniTextProps) {
+  const theme = useTheme();
   return (
     <View style={styles.macroRow}>
-      <Text style={styles.macroLabel}>{`${label}: `}</Text>
-      <Text style={[styles.macroValue, { color }]}>{value}</Text>
+      <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+        {`${label}: `}
+      </Text>
+      <Text variant="labelSmall" style={{ color, fontWeight: '700' }}>
+        {value}
+      </Text>
     </View>
   );
 }
 
 export function AlimentoItem({ alimento, onPress }: AlimentoItemProps) {
+  const theme = useTheme();
   const kcal = safeToIntString(alimento.calorias);
   const c = safeToIntString(alimento.carbohidratos);
   const p = safeToIntString(alimento.proteinas);
   const g = safeToIntString(alimento.grasas);
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.container, pressed && styles.containerPressed]}>
-      <View style={styles.leftColumn}>
-        <Text style={styles.title}>{alimento.nombreAlimento}</Text>
-        <Text style={styles.subtitle}>
-          {alimento.cantidad} {alimento.medida}
-        </Text>
-      </View>
-      <View style={styles.rightColumn}>
-        <Text style={styles.kcal}>{`${kcal} kcal`}</Text>
-        <View style={styles.macrosRow}>
-          <MacroMiniText label="C" value={c} color={palette.rosaCarbos} />
-          <MacroMiniText label="P" value={p} color={palette.azulProte} />
-          <MacroMiniText label="G" value={g} color={palette.amarilloGrasas} />
+    <Card mode="outlined" style={styles.card} onPress={onPress ?? undefined}>
+      <Card.Content style={styles.content}>
+        <View style={styles.leftColumn}>
+          <Text variant="titleSmall" style={{ color: theme.colors.onSurface, fontWeight: '700' }}>
+            {alimento.nombreAlimento}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
+              {alimento.cantidad} {alimento.medida}
+            </Text>
+            {alimento.marca != undefined && (
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginLeft: 4 }}>
+                (Marca: {alimento.marca})
+              </Text>
+            )}
+          </View>
         </View>
-      </View>
-    </Pressable>
+        <View style={styles.rightColumn}>
+          <Text variant="titleSmall" style={{ color: macroPalette.azulCalorias, fontWeight: '700' }}>
+            {`${kcal} kcal`}
+          </Text>
+          <View style={styles.macrosRow}>
+            <MacroMiniText label="C" value={c} color={macroPalette.rosaCarbos} />
+            <MacroMiniText label="P" value={p} color={macroPalette.azulProte} />
+            <MacroMiniText label="G" value={g} color={macroPalette.amarilloGrasas} />
+          </View>
+        </View>
+      </Card.Content>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  card: {
+    marginVertical: 2,
+    marginHorizontal: 5,
+  },
+  content: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
-    padding: 12,
-  },
-  containerPressed: {
-    opacity: 0.85,
   },
   leftColumn: {
     flex: 1,
@@ -92,21 +107,6 @@ const styles = StyleSheet.create({
   },
   rightColumn: {
     alignItems: 'flex-end',
-  },
-  title: {
-    color: palette.negroPuro,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  subtitle: {
-    color: palette.grisFuerte,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  kcal: {
-    color: palette.azulCalorias,
-    fontSize: 15,
-    fontWeight: '700',
   },
   macrosRow: {
     flexDirection: 'row',
@@ -118,12 +118,4 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  macroLabel: {
-    color: palette.grisSuave,
-    fontSize: 11,
-  },
-  macroValue: {
-    fontSize: 11,
-    fontWeight: '700',
-  } satisfies TextStyle,
 });

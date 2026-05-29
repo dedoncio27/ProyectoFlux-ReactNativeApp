@@ -1,18 +1,17 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { auth, db } from '@/config/firebase';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { useEffect, useMemo, useState } from 'react';
+import { FlatList, View } from 'react-native';
+import { Button, Surface, Text, useTheme } from 'react-native-paper';
 
-type TabKey = 'misAlimentos' | 'biblioteca' | 'misRecetas';
+import { AlimentoItem } from '@/components/alimento-item';
+import { FoodTopbar, type FoodTabRoute } from '@/components/food-browser-layout';
+import { Alimento } from '@/types/alimento';
+import { Receta } from '@/types/receta';
 
-const tabs: { key: TabKey; label: string }[] = [
-  { key: 'misAlimentos', label: 'Mis alimentos' },
-  { key: 'biblioteca', label: 'Biblioteca' },
-  { key: 'misRecetas', label: 'Mis recetas' },
-];
-
-const tabContent: Record<
-  TabKey,
+const tabConfig: Record<
+  FoodTabRoute,
   {
     title: string;
     placeholder: string;
@@ -21,20 +20,20 @@ const tabContent: Record<
     addButtonText?: string;
   }
 > = {
-  misAlimentos: {
+  '/misAlimentos': {
     title: 'Alimentos',
     placeholder: 'Buscar en mis alimentos...',
     emptyText: 'Aun no hay alimentos',
     showAddButton: true,
     addButtonText: 'Añadir nuevo alimento',
   },
-  biblioteca: {
+  '/bibliotecaGlobal': {
     title: 'Biblioteca Global',
     placeholder: 'Buscar alimento...',
     emptyText: 'Busca tus alimentos',
     showAddButton: false,
   },
-  misRecetas: {
+  '/misRecetas': {
     title: 'Recetas',
     placeholder: 'Buscar en mis recetas...',
     emptyText: 'Aun no hay ninguna receta',
@@ -44,143 +43,165 @@ const tabContent: Record<
 };
 
 export default function MisAlimentosScreen() {
+  const theme = useTheme();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabKey>('misAlimentos');
-  const activeConfig = tabContent[activeTab];
+  const localParams = useLocalSearchParams<{ fecha?: string; comida?: string }>();
+  const fecha = localParams.fecha || new Date().toISOString().split('T')[0];
+  const comida = localParams.comida || 'Desayuno';
+
+  const [activeTab, setActiveTab] = useState<FoodTabRoute>('/misAlimentos');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [items, setItems] = useState<Array<Alimento | Receta>>([]);
+  const [loading, setLoading] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  const cfg = useMemo(() => tabConfig[activeTab], [activeTab]);
+
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUserEmail(user ? user.email : null);
+    });
+    return () => unsubscribe();
+  }, []);
+
+
+  useEffect(() => {
+    if (!userEmail) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
+    // 1. Agrupamos los estados iniciales de carga de forma limpia
+    setLoading(true);
+    setSearchQuery('');
+
+    let q;
+    if (activeTab === '/misAlimentos') {
+      q = query(collection(db, 'MisAlimentos'), where('email', '==', userEmail));
+    } else if (activeTab === '/misRecetas') {
+      q = query(collection(db, 'Recetas'), where('email', '==', userEmail));
+    }
+
+    if (!q) {
+      setItems([]); // Limpiamos si no coincide ninguna pestaña válida
+      setLoading(false);
+      return;
+    }
+
+    // Variable de control para evitar actualizar estados si el usuario cambia de pestaña rápido
+    let isMounted = true;
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        // Si el usuario ya cambió de pestaña mientras llegaban los datos, ignoramos esta respuesta
+        if (!isMounted) return;
+
+        const list = snapshot.docs.map((doc) => {
+          return activeTab === '/misRecetas'
+            ? new Receta(doc.id, doc.data())
+            : new Alimento(doc.id, doc.data());
+        });
+
+        setItems(list);
+        setLoading(false);
+      },
+      (error) => {
+        console.error('Error listening to Firestore collection:', error);
+        if (isMounted) setLoading(false);
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [activeTab, userEmail]);
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery) return items;
+    const cleanQuery = searchQuery.toLowerCase();
+    return items.filter((item) => {
+      if (item instanceof Receta) {
+        return item.nombreReceta.toLowerCase().includes(cleanQuery);
+      }
+      return (
+        item.nombreAlimento.toLowerCase().includes(cleanQuery) ||
+        item.marca.toLowerCase().includes(cleanQuery)
+      );
+    });
+  }, [items, searchQuery]);
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={26} color="#fff" />
-        </Pressable>
-        <Text style={styles.topBarTitle}>{activeConfig.title}</Text>
-      </View>
-
-      <View style={styles.blueContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#0f284d" />
-          <TextInput
-            placeholder={activeConfig.placeholder}
-            placeholderTextColor="#446185"
-            style={styles.searchInput}
+    <Surface style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <FoodTopbar
+        activeTab="/misAlimentos"
+        title="Alimentos"
+        placeholder="Buscar en mis alimentos..."
+        query={searchQuery}
+        onQueryChange={setSearchQuery}
+      />
+      <View style={{ flex: 1 }}>
+        <Button
+          mode="contained"
+          onPress={() => { router.push({ pathname: '/nuevoAlimento' }) }}
+          style={{ marginTop: 12, marginBottom: 10, marginHorizontal: 12, borderRadius: 22 }}
+          buttonColor={theme.colors.primary}
+          textColor={theme.colors.onPrimary}
+        >
+          Añadir nuevo alimento
+        </Button>
+        {filteredItems.length === 0 ? (
+          <Text
+            variant="titleMedium"
+            style={{
+              marginTop: 32,
+              textAlign: 'center',
+              color: theme.colors.onSurfaceVariant,
+            }}
+          >
+            {cfg.emptyText}
+          </Text>
+        ) : (
+          <FlatList
+            data={filteredItems}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <AlimentoItem
+                alimento={item.toListItem()}
+                onPress={() => {
+                  const isRec = item instanceof Receta;
+                  router.push({
+                    pathname: '/addDelOrEdItem',
+                    params: {
+                      id: item.id,
+                      email: item.email,
+                      nombreAlimento: isRec ? (item as Receta).nombreReceta : (item as Alimento).nombreAlimento,
+                      marca: isRec ? 'Receta Casera' : ((item as Alimento).marca || ''),
+                      medida: isRec ? (item as Receta).medidaReceta : (item as Alimento).medida,
+                      cantidad: isRec ? (item as Receta).cantidadTotalReceta : (item as Alimento).cantidad,
+                      calorias: isRec ? (item as Receta).caloriasReceta : (item as Alimento).calorias,
+                      carbohidratos: isRec ? (item as Receta).carbohidratosReceta : (item as Alimento).carbohidratos,
+                      proteinas: isRec ? (item as Receta).proteinasReceta : (item as Alimento).proteinas,
+                      grasas: isRec ? (item as Receta).grasasReceta : (item as Alimento).grasas,
+                      descripcion: item.descripcion || '',
+                      type: isRec ? 'receta' : 'alimento',
+                      alimentosReceta: isRec ? JSON.stringify((item as Receta).alimentosReceta) : '',
+                      cantidadesReceta: isRec ? JSON.stringify((item as Receta).cantidadesReceta) : '',
+                      fecha: fecha,
+                      comida: comida,
+                    }
+                  });
+                }}
+              />
+            )}
+            contentContainerStyle={{ paddingBottom: 16 }}
+            showsVerticalScrollIndicator={false}
           />
-        </View>
-
-        <View style={styles.tabRow}>
-          {tabs.map((tab) => (
-            <Pressable key={tab.key} style={styles.tabButton} onPress={() => setActiveTab(tab.key)}>
-              <Text style={styles.tabText}>{tab.label}</Text>
-              <View style={[styles.tabIndicator, activeTab === tab.key && styles.tabIndicatorActive]} />
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.content}>
-        {activeConfig.showAddButton && (
-          <Pressable style={styles.addButton}>
-            <Text style={styles.addButtonText}>{activeConfig.addButtonText}</Text>
-          </Pressable>
         )}
-        <Text style={styles.emptyText}>{activeConfig.emptyText}</Text>
       </View>
-    </View>
+    </Surface>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#f2f2f2',
-  },
-  topBar: {
-    backgroundColor: '#1565c0',
-    height: 110,
-    paddingTop: 42,
-    paddingBottom: 16,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButton: {
-    position: 'absolute',
-    left: 18,
-    top: 42,
-    bottom: 16,
-    justifyContent: 'center',
-  },
-  topBarTitle: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '600',
-    letterSpacing: 1.2,
-  },
-  blueContainer: {
-    backgroundColor: '#1565c0',
-    paddingHorizontal: 12,
-    paddingBottom: 6,
-  },
-  searchBar: {
-    height: 54,
-    borderRadius: 14,
-    backgroundColor: '#4a90dd',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    gap: 10,
-    marginBottom: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 18,
-    color: '#0f284d',
-  },
-  tabRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  tabButton: {
-    width: '32%',
-    alignItems: 'center',
-  },
-  tabText: {
-    color: '#e6f0fb',
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-  tabIndicator: {
-    width: '100%',
-    height: 2,
-    backgroundColor: 'transparent',
-  },
-  tabIndicatorActive: {
-    backgroundColor: '#cfe3fb',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 10,
-    paddingTop: 12,
-  },
-  addButton: {
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#4a90dd',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '600',
-  },
-  emptyText: {
-    marginTop: 24,
-    color: '#8a8a8a',
-    fontSize: 24,
-    textAlign: 'center',
-  },
-});
