@@ -10,12 +10,18 @@ export interface UserProfile {
     objetivo: string;
 }
 
+export type DistribucionType = 'equilibrada' | 'alta_proteina' | 'cetogenica' | 'alta_carbohidratos' | 'personalizada';
+
 export interface CalorySettings {
     auto: boolean;
     calorias: number;
     proteinas: number;
     carbohidratos: number;
     grasas: number;
+    distribucion: DistribucionType;
+    customProteinas?: number;   // % personalizado
+    customCarbohidratos?: number;
+    customGrasas?: number;
 }
 
 const PROFILE_KEY = '@user_metabolic_profile';

@@ -42,7 +42,7 @@ export default function SettingsScreen() {
                     title="Ejercicios"
                     description="Visualiza todos los ejercicios disponibles"
                     icon="bike"
-                    onPress={() => { }}
+                    onPress={() => { router.navigate('/exercises') }}
                 />
             </View>
             <View style={styles.content}>
@@ -63,7 +63,7 @@ export default function SettingsScreen() {
                     title="Hazte Premium"
                     description="Haz un donativo para apoyar al proyecto"
                     icon="star"
-                    onPress={() => { }}
+                    onPress={() => { router.navigate('/payment') }}
                 />
             </View>
         </Surface>

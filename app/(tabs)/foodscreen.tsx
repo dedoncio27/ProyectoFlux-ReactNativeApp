@@ -1,5 +1,7 @@
-import { AlimentoItem } from '@/components/alimento-item'; // 👈 ¡Ajusta esta ruta a tu proyecto!
+import { AlimentoItem } from '@/components/alimento-item';
 import { ConsumedFood, getConsumedFoodsByDate } from '@/utils/consumedStorage';
+// 1. Asegúrate de importar getCalorySettings y CalorySettings (ya los tenías)
+import { CalorySettings, getCalorySettings } from '@/utils/profileStorage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -12,6 +14,7 @@ import {
   Text,
   useTheme,
 } from 'react-native-paper';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, G } from 'react-native-svg';
 
@@ -22,10 +25,12 @@ type MacroItem = {
   color: string;
 };
 
-const kcalTarget = 3950;
-const targetCarbs = 395;
-const targetProtein = 296;
-const targetFat = 131;
+const DEFAULT_SETTINGS = {
+  calorias: 2000,
+  carbohidratos: 200,
+  proteinas: 150,
+  grasas: 70,
+};
 
 const formatDate = (value: Date) =>
   value.toLocaleDateString('es-ES', {
@@ -41,14 +46,41 @@ export default function FoodScreen() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [consumedFoods, setConsumedFoods] = useState<ConsumedFood[]>([]);
 
+  const [targets, setTargets] = useState<CalorySettings | null>(null);
+
   const formattedDate = useMemo(() => formatDate(selectedDate), [selectedDate]);
 
   useFocusEffect(
     useCallback(() => {
+      let isMounted = true;
       const dateStr = selectedDate.toISOString().split('T')[0];
-      getConsumedFoodsByDate(dateStr).then(setConsumedFoods);
+
+      Promise.all([
+        getConsumedFoodsByDate(dateStr),
+        getCalorySettings()
+      ]).then(([foods, settings]) => {
+        if (!isMounted) return;
+
+        setConsumedFoods(foods);
+        if (settings) {
+          setTargets(settings);
+        }
+      }).catch(err => console.error("Error cargando datos: ", err));
+
+      return () => {
+        isMounted = false;
+      };
     }, [selectedDate])
   );
+
+  const activeTargets = useMemo(() => {
+    return {
+      kcal: targets?.calorias ?? DEFAULT_SETTINGS.calorias,
+      carbs: targets?.carbohidratos ?? DEFAULT_SETTINGS.carbohidratos,
+      protein: targets?.proteinas ?? DEFAULT_SETTINGS.proteinas,
+      fat: targets?.grasas ?? DEFAULT_SETTINGS.grasas,
+    };
+  }, [targets]);
 
   const totals = useMemo(() => {
     let kcal = 0;
@@ -105,11 +137,11 @@ export default function FoodScreen() {
 
   const macroData = useMemo<MacroItem[]>(
     () => [
-      { label: 'Carbohidratos', consumed: totals.carbs, target: targetCarbs, color: totals.carbs > targetCarbs ? '#ef5350' : '#e040fb' },
-      { label: 'Proteínas', consumed: totals.protein, target: targetProtein, color: totals.protein > targetProtein ? '#ef5350' : '#1e88e5' },
-      { label: 'Grasas', consumed: totals.fat, target: targetFat, color: totals.fat > targetFat ? '#ef5350' : '#fbc02d' },
+      { label: 'Carbohidratos', consumed: totals.carbs, target: activeTargets.carbs, color: totals.carbs > activeTargets.carbs ? '#ef5350' : '#e040fb' },
+      { label: 'Proteínas', consumed: totals.protein, target: activeTargets.protein, color: totals.protein > activeTargets.protein ? '#ef5350' : '#1e88e5' },
+      { label: 'Grasas', consumed: totals.fat, target: activeTargets.fat, color: totals.fat > activeTargets.fat ? '#ef5350' : '#fbc02d' },
     ],
-    [totals]
+    [totals, activeTargets]
   );
 
   const changeDay = (days: number) => {
@@ -125,9 +157,11 @@ export default function FoodScreen() {
   const radius = (circleSize - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  // 240 degrees arc for the gauge
+
   const arcLength = circumference * (240 / 360);
-  const kcalRatio = Math.min(totals.kcal / kcalTarget, 1);
+
+
+  const kcalRatio = Math.min(totals.kcal / activeTargets.kcal, 1);
 
   return (
     <Surface style={[styles.screen, { backgroundColor: theme.colors.background }]} elevation={0}>
@@ -178,7 +212,7 @@ export default function FoodScreen() {
                   cx={circleSize / 2}
                   cy={circleSize / 2}
                   r={radius}
-                  stroke={totals.kcal > kcalTarget ? '#ef5350' : '#3a86f5'}
+                  stroke={totals.kcal > activeTargets.kcal ? '#ef5350' : '#3a86f5'}
                   strokeWidth={strokeWidth}
                   strokeDasharray={`${kcalRatio * arcLength} ${circumference}`}
                   fill="transparent"
@@ -190,7 +224,7 @@ export default function FoodScreen() {
           <View style={styles.kcalCircleTextContainer}>
             <Text style={{ fontWeight: '700', fontSize: 44, color: theme.colors.onBackground }}>{totals.kcal}</Text>
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: -4 }}>kcal consumidas</Text>
-            <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>de {kcalTarget}</Text>
+            <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>de {activeTargets.kcal}</Text>
           </View>
         </View>
 

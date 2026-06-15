@@ -2,7 +2,7 @@ import { auth, db } from '@/config/firebase';
 import { Alimento } from '@/types/alimento';
 import { addConsumedFood } from '@/utils/consumedStorage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { collection, deleteDoc, doc, onSnapshot, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, onSnapshot, query, setDoc, where } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { Appbar, Button, Surface, Text, TextInput, useTheme } from 'react-native-paper';
@@ -151,37 +151,41 @@ export default function AddDelOrEdItemScreen() {
             .filter(Boolean);
     }, [alimentosRecetaIds, cantidadesRecetaMap, dbAlimentos, factor]);
 
-    const handleEdit = async () => {
+    const handleEdit = () => {
         if (!params.id) return;
-        setLoading(true);
-        try {
-            if (params.type === 'receta') {
-                const docRef = doc(db, 'Recetas', params.id);
-                await updateDoc(docRef, {
-                    CantidadTotalReceta: quantityStr,
-                    CaloriasReceta: currentCalorias.toString(),
-                    CarbohidratosReceta: currentCarbs.toString(),
-                    ProteinasReceta: currentProtein.toString(),
-                    GrasasReceta: currentFat.toString(),
-                });
-            } else {
-                const docRef = doc(db, 'MisAlimentos', params.id);
-                await updateDoc(docRef, {
-                    Cantidad: quantityStr,
-                    Calorias: currentCalorias.toString(),
-                    Carbohidratos: currentCarbs.toString(),
-                    Proteinas: currentProtein.toString(),
-                    Grasas: currentFat.toString(),
-                });
-            }
-            Alert.alert('Éxito', 'Elemento actualizado correctamente', [
-                { text: 'OK', onPress: () => router.back() },
-            ]);
-        } catch (error) {
-            console.error('Error updating document: ', error);
-            Alert.alert('Error', 'Hubo un error al actualizar el elemento');
-        } finally {
-            setLoading(false);
+        if (params.type === 'receta') {
+            router.push({
+                pathname: '/nuevaReceta',
+                params: {
+                    editId: params.id,
+                    nombreReceta: params.nombreAlimento,
+                    descripcion: params.descripcion || '',
+                    medida: params.medida || 'g',
+                    cantidad: params.cantidad,
+                    calorias: params.calorias,
+                    carbohidratos: params.carbohidratos,
+                    proteinas: params.proteinas,
+                    grasas: params.grasas,
+                    alimentosReceta: params.alimentosReceta || '[]',
+                    cantidadesReceta: params.cantidadesReceta || '{}',
+                },
+            });
+        } else {
+            router.push({
+                pathname: '/nuevoAlimento',
+                params: {
+                    editId: params.id,
+                    nombreAlimento: params.nombreAlimento,
+                    marca: params.marca || '',
+                    medida: params.medida || 'g',
+                    cantidad: params.cantidad,
+                    calorias: params.calorias,
+                    carbohidratos: params.carbohidratos,
+                    proteinas: params.proteinas,
+                    grasas: params.grasas,
+                    descripcion: params.descripcion || '',
+                },
+            });
         }
     };
 

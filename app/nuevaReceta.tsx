@@ -1,7 +1,7 @@
 import { db } from '@/config/firebase';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getAuth } from 'firebase/auth';
-import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { collection, doc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import {
@@ -42,13 +42,30 @@ export default function NuevaRecetaScreen() {
     const theme = useTheme();
     const insets = useSafeAreaInsets();
 
+    // Params for edit mode
+    const params = useLocalSearchParams<{
+        editId?: string;
+        nombreReceta?: string;
+        descripcion?: string;
+        medida?: string;
+        cantidad?: string;
+        calorias?: string;
+        carbohidratos?: string;
+        proteinas?: string;
+        grasas?: string;
+        alimentosReceta?: string;
+        cantidadesReceta?: string;
+    }>();
+
+    const isEditMode = !!params.editId;
+
     // Estados del formulario
-    const [nombreReceta, setNombreReceta] = useState('');
-    const [descripcion, setDescripcion] = useState('');
+    const [nombreReceta, setNombreReceta] = useState(params.nombreReceta || '');
+    const [descripcion, setDescripcion] = useState(params.descripcion || '');
 
 
     // Estados de cantidad/unidad
-    const [medida, setMedida] = useState('g');
+    const [medida, setMedida] = useState(params.medida || 'g');
     const [medidaMenuOpen, setMedidaMenuOpen] = useState(false);
 
     // Estados de alimentos seleccionados
@@ -63,6 +80,7 @@ export default function NuevaRecetaScreen() {
     // Estados de carga
     const [loading, setLoading] = useState(false);
     const [loadingAlimentos, setLoadingAlimentos] = useState(false);
+    const [loadingEditData, setLoadingEditData] = useState(isEditMode);
 
     // NUEVOS ESTADOS PARA EL TOAST (MENSAGE FLOTANTE)
     const [toastVisible, setToastVisible] = useState(false);
@@ -74,6 +92,80 @@ export default function NuevaRecetaScreen() {
             cargarAlimentos();
         }
     }, [modalVisible]);
+
+    // Cargar datos existentes en modo edición
+    useEffect(() => {
+        if (!isEditMode) return;
+
+        const cargarDatosEdicion = async () => {
+            const auth = getAuth();
+            const currentUser = auth.currentUser;
+            if (!currentUser?.email) {
+                setLoadingEditData(false);
+                return;
+            }
+
+            try {
+                // Parse the recipe ingredient IDs and quantities from params
+                let alimentosIds: string[] = [];
+                let cantidadesMap: Record<string, number> = {};
+                try {
+                    alimentosIds = params.alimentosReceta ? JSON.parse(params.alimentosReceta) : [];
+                } catch { alimentosIds = []; }
+                try {
+                    const raw = params.cantidadesReceta ? JSON.parse(params.cantidadesReceta) : {};
+                    cantidadesMap = raw;
+                } catch { cantidadesMap = {}; }
+
+                if (alimentosIds.length === 0) {
+                    setLoadingEditData(false);
+                    return;
+                }
+
+                // Load the user's alimentos from Firebase to find the recipe ingredients
+                const q = query(
+                    collection(db, 'MisAlimentos'),
+                    where('email', '==', currentUser.email)
+                );
+                const snapshot = await getDocs(q);
+                const allAlimentos: AlimentoData[] = [];
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    allAlimentos.push({
+                        id: data.id || docSnap.id,
+                        nombreAlimento: data.NombreAlimento || data.nombreAlimento || '',
+                        marca: data.Marca || data.marca || '',
+                        medida: data.Medida || data.medida || 'g',
+                        cantidad: parseFloat(data.Cantidad || data.cantidad) || 100,
+                        calorias: parseFloat(data.Calorias || data.calorias) || 0,
+                        carbohidratos: parseFloat(data.Carbohidratos || data.carbohidratos) || 0,
+                        proteinas: parseFloat(data.Proteinas || data.proteinas) || 0,
+                        grasas: parseFloat(data.Grasas || data.grasas) || 0,
+                        descripcion: data.Descripcion || data.descripcion || '',
+                    });
+                });
+
+                // Map the recipe ingredients with their quantities
+                const seleccionados: AlimentoSeleccionado[] = [];
+                for (const ingredientId of alimentosIds) {
+                    const found = allAlimentos.find(
+                        (a) => a.id === ingredientId || a.nombreAlimento.toLowerCase() === ingredientId.toLowerCase()
+                    );
+                    if (found) {
+                        const cantidadLocal = parseFloat(String(cantidadesMap[ingredientId])) || found.cantidad;
+                        seleccionados.push({ ...found, cantidadLocal });
+                    }
+                }
+                setAlimentosSeleccionados(seleccionados);
+            } catch (error) {
+                console.error('Error cargando datos de edición:', error);
+            } finally {
+                setLoadingEditData(false);
+            }
+        };
+
+        cargarDatosEdicion();
+    }, []);
 
     // Filtrar alimentos cuando cambia la búsqueda
     useEffect(() => {
@@ -179,8 +271,6 @@ export default function NuevaRecetaScreen() {
     };
 
     const guardarReceta = async () => {
-        const newDocRef = doc(collection(db, 'Recetas'));
-        const generatedId = newDocRef.id;
         if (!nombreReceta.trim()) {
             Alert.alert('Error', 'El nombre de la receta es obligatorio');
             return;
@@ -206,27 +296,51 @@ export default function NuevaRecetaScreen() {
                 cantidadesMap[a.id] = a.cantidadLocal;
             });
 
-            const recetaData = {
-                id: generatedId,
-                email: currentUser.email,
-                NombreReceta: nombreReceta.trim(),
-                MedidaReceta: medida,
-                CantidadTotalReceta: parseFloat(totales.pesoTotal.toFixed(1)),
-                CaloriasReceta: parseFloat(totales.calorias.toFixed(1)),
-                CarbohidratosReceta: parseFloat(totales.carbohidratos.toFixed(1)),
-                ProteinasReceta: parseFloat(totales.proteinas.toFixed(1)),
-                GrasasReceta: parseFloat(totales.grasas.toFixed(1)),
-                AlimentosReceta: alimentosArray,
-                CantidadesReceta: cantidadesMap,
-            };
-            await setDoc(newDocRef, recetaData);
+            if (isEditMode && params.editId) {
+                // Update existing recipe
+                const docRef = doc(db, 'Recetas', params.editId);
+                await updateDoc(docRef, {
+                    NombreReceta: nombreReceta.trim(),
+                    MedidaReceta: medida,
+                    CantidadTotalReceta: parseFloat(totales.pesoTotal.toFixed(1)),
+                    CaloriasReceta: parseFloat(totales.calorias.toFixed(1)),
+                    CarbohidratosReceta: parseFloat(totales.carbohidratos.toFixed(1)),
+                    ProteinasReceta: parseFloat(totales.proteinas.toFixed(1)),
+                    GrasasReceta: parseFloat(totales.grasas.toFixed(1)),
+                    AlimentosReceta: alimentosArray,
+                    CantidadesReceta: cantidadesMap,
+                });
 
-            Alert.alert('Éxito', 'Receta guardada correctamente', [
-                { text: 'OK', onPress: () => router.back() },
-            ]);
+                Alert.alert('Éxito', 'Receta actualizada correctamente', [
+                    { text: 'OK', onPress: () => router.dismissTo('/misRecetas') },
+                ]);
+            } else {
+                // Create new recipe
+                const newDocRef = doc(collection(db, 'Recetas'));
+                const generatedId = newDocRef.id;
+
+                const recetaData = {
+                    id: generatedId,
+                    email: currentUser.email,
+                    NombreReceta: nombreReceta.trim(),
+                    MedidaReceta: medida,
+                    CantidadTotalReceta: parseFloat(totales.pesoTotal.toFixed(1)),
+                    CaloriasReceta: parseFloat(totales.calorias.toFixed(1)),
+                    CarbohidratosReceta: parseFloat(totales.carbohidratos.toFixed(1)),
+                    ProteinasReceta: parseFloat(totales.proteinas.toFixed(1)),
+                    GrasasReceta: parseFloat(totales.grasas.toFixed(1)),
+                    AlimentosReceta: alimentosArray,
+                    CantidadesReceta: cantidadesMap,
+                };
+                await setDoc(newDocRef, recetaData);
+
+                Alert.alert('Éxito', 'Receta guardada correctamente', [
+                    { text: 'OK', onPress: () => router.back() },
+                ]);
+            }
         } catch (error) {
             console.error('Error guardando receta:', error);
-            Alert.alert('Error', 'No se pudo guardar la receta');
+            Alert.alert('Error', isEditMode ? 'No se pudo actualizar la receta' : 'No se pudo guardar la receta');
         } finally {
             setLoading(false);
         }
@@ -264,7 +378,7 @@ export default function NuevaRecetaScreen() {
                 <Appbar.Header mode="center-aligned" statusBarHeight={0} style={{ height: 64, backgroundColor: theme.colors.primary }}>
                     <Appbar.BackAction onPress={() => router.back()} color={theme.colors.onPrimary} />
                     <Appbar.Content
-                        title="Nueva Receta"
+                        title={isEditMode ? "Editar Receta" : "Nueva Receta"}
                         titleStyle={{ color: theme.colors.onPrimary, fontWeight: '600', fontSize: 18 }}
                     />
                 </Appbar.Header>
@@ -487,7 +601,7 @@ export default function NuevaRecetaScreen() {
                     contentStyle={{ paddingVertical: 8 }}
                     labelStyle={{ fontSize: 16, fontWeight: '600' }}
                 >
-                    Guardar Receta
+                    {isEditMode ? 'Actualizar Receta' : 'Guardar Receta'}
                 </Button>
             </View>
 

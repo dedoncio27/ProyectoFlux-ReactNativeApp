@@ -1,5 +1,6 @@
+import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { Appbar, Surface, Text, useTheme } from 'react-native-paper';
+import { Appbar, Button, Surface, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TrainingScreen() {
@@ -8,7 +9,7 @@ export default function TrainingScreen() {
 
   return (
     <Surface style={[styles.screen, { backgroundColor: theme.colors.background }]} elevation={0}>
-      <View style={[styles.header, { backgroundColor: theme.colors.primary, paddingTop: insets.top  }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.primary, paddingTop: insets.top }]}>
         <Appbar.Header mode="center-aligned" statusBarHeight={0} style={{ height: 70, backgroundColor: theme.colors.primary }}>
           <Appbar.Content title="Entrenamiento" titleStyle={{ color: theme.colors.onPrimary, fontWeight: '600', fontSize: 18 }} />
         </Appbar.Header>
@@ -17,6 +18,12 @@ export default function TrainingScreen() {
         <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant, marginTop: 10 }}>
           Aqui puedes añadir tu rutina diaria.
         </Text>
+        <Button
+          onPress={() => { router.navigate("/workout") }}
+          mode="contained"
+        >
+          Agregar Ejercicio
+        </Button>
       </View>
     </Surface>
   );
@@ -28,7 +35,7 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: 0,
-    
+
   },
   contentContainer: {
     paddingHorizontal: 24,
@@ -37,7 +44,7 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     alignSelf: 'center',
     width: '100%',
-    marginTop:40
+    marginTop: 40
   },
   field: {
     marginBottom: 16,

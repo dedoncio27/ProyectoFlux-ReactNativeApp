@@ -1,7 +1,7 @@
 import { db } from '@/config/firebase';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getAuth } from 'firebase/auth';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 import { Appbar, Button, Divider, Menu, Surface, Text, TextInput, useTheme } from 'react-native-paper';
@@ -12,15 +12,31 @@ export default function NuevoAlimentoScreen() {
     const theme = useTheme();
     const insets = useSafeAreaInsets();
 
-    const [nombreAlimento, setNombreAlimento] = useState('');
-    const [marca, setMarca] = useState('');
-    const [medida, setMedida] = useState('g');
-    const [cantidad, setCantidad] = useState('100');
-    const [calorias, setCalorias] = useState('');
-    const [carbohidratos, setCarbohidratos] = useState('');
-    const [proteinas, setProteinas] = useState('');
-    const [grasas, setGrasas] = useState('');
-    const [descripcion, setDescripcion] = useState('');
+    // Params for edit mode — if editId is present, we are editing an existing alimento
+    const params = useLocalSearchParams<{
+        editId?: string;
+        nombreAlimento?: string;
+        marca?: string;
+        medida?: string;
+        cantidad?: string;
+        calorias?: string;
+        carbohidratos?: string;
+        proteinas?: string;
+        grasas?: string;
+        descripcion?: string;
+    }>();
+
+    const isEditMode = !!params.editId;
+
+    const [nombreAlimento, setNombreAlimento] = useState(params.nombreAlimento || '');
+    const [marca, setMarca] = useState(params.marca || '');
+    const [medida, setMedida] = useState(params.medida || 'g');
+    const [cantidad, setCantidad] = useState(params.cantidad || '100');
+    const [calorias, setCalorias] = useState(params.calorias || '');
+    const [carbohidratos, setCarbohidratos] = useState(params.carbohidratos || '');
+    const [proteinas, setProteinas] = useState(params.proteinas || '');
+    const [grasas, setGrasas] = useState(params.grasas || '');
+    const [descripcion, setDescripcion] = useState(params.descripcion || '');
 
     const [medidaMenuOpen, setMedidaMenuOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -70,6 +86,39 @@ export default function NuevoAlimentoScreen() {
         }
     };
 
+    const updateItemInDB = async () => {
+        if (!params.editId) return;
+
+        setLoading(true);
+        try {
+            const docRef = doc(db, 'MisAlimentos', params.editId);
+            await updateDoc(docRef, {
+                NombreAlimento: nombreAlimento,
+                Marca: marca,
+                Medida: medida,
+                Cantidad: cantidad,
+                Calorias: calorias,
+                Carbohidratos: carbohidratos,
+                Proteinas: proteinas,
+                Grasas: grasas,
+                Descripcion: descripcion,
+            });
+
+            Alert.alert('Éxito', 'Alimento actualizado correctamente', [
+                {
+                    text: 'OK',
+                    onPress: () => router.dismissTo('/misAlimentos')
+                }
+            ]);
+
+        } catch (error) {
+            console.error('Error updating document: ', error);
+            Alert.alert('Error', 'Hubo un error al actualizar el alimento');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const saveItem = () => {
         // 1. Validación de campos vacíos
         if (calorias === "" ||
@@ -100,8 +149,12 @@ export default function NuevoAlimentoScreen() {
             return;
         }
 
-        // 4. Si pasa los controles, ejecutamos la subida con los paréntesis ()
-        addItemtoDB(); // ⚡ CORREGIDO: Ahora sí se ejecuta la función
+        // 4. Si pasa los controles, ejecutamos la subida o actualización
+        if (isEditMode) {
+            updateItemInDB();
+        } else {
+            addItemtoDB(); // ⚡ CORREGIDO: Ahora sí se ejecuta la función
+        }
     }
 
     return (
@@ -110,7 +163,7 @@ export default function NuevoAlimentoScreen() {
                 <Appbar.Header mode="center-aligned" statusBarHeight={0} style={{ height: 64, backgroundColor: theme.colors.primary }}>
                     <Appbar.BackAction onPress={() => router.back()} color={theme.colors.onPrimary} />
                     <Appbar.Content
-                        title={"Nuevo Alimento"}
+                        title={isEditMode ? "Editar Alimento" : "Nuevo Alimento"}
                         titleStyle={{ color: theme.colors.onPrimary, fontWeight: '600', fontSize: 18 }}
                     />
                 </Appbar.Header>
@@ -160,7 +213,7 @@ export default function NuevoAlimentoScreen() {
                     disabled={loading}
                     onPress={() => saveItem()}
                 >
-                    Guardar Alimento
+                    {isEditMode ? 'Actualizar Alimento' : 'Guardar Alimento'}
                 </Button>
             </View>
         </Surface>

@@ -50,6 +50,9 @@ function RootLayoutContent() {
           <Stack.Screen name="nuevaReceta" options={{ headerShown: false, animation: 'slide_from_right' }} />
           <Stack.Screen name="myProfile" options={{ headerShown: false, animation: 'slide_from_right' }} />
           <Stack.Screen name="calorySettings" options={{ headerShown: false, animation: 'slide_from_right' }} />
+          <Stack.Screen name="payment" options={{ headerShown: false, animation: 'slide_from_right' }} />
+          <Stack.Screen name="exercises" options={{ headerShown: false, animation: 'slide_from_right' }} />
+          <Stack.Screen name="workout" options={{ headerShown: false, animation: 'slide_from_right' }} />
         </Stack>
         <StatusBar style={isDark ? "light" : "dark"} />
       </ThemeProvider>
