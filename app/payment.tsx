@@ -13,12 +13,12 @@ const CARD_WIDTH = SCREEN_WIDTH * 0.8;
 
 // Tus Price IDs de Stripe
 const PRICE_IDS = {
-    cafe: 'price_1TiWZfBcwT4Z0dqSJeq1GhoK',      // 3€ - Pequeño donativo
-    pizza: 'price_1TiWaCBcwT4Z0dqSaC56yeSm',     // 10€ - Donativo top
-    sponsor: 'price_1TiWavBcwT4Z0dqS8ADkrQ5v',   // 25€ - Donativo épico
+    cafe: 'price_1TiWZfBcwT4Z0dqSJeq1GhoK',
+    pizza: 'price_1TiWaCBcwT4Z0dqSaC56yeSm',
+    sponsor: 'price_1TiWavBcwT4Z0dqS8ADkrQ5v',
 };
 
-const API_URL = 'https://flux-backend-e9flgx4cc-adrians-projects-3ead0681.vercel.app';
+const API_URL = 'https://flux-backend-adrians-projects-3ead0681.vercel.app';
 
 export default function PaymentScreen() {
     const router = useRouter();
