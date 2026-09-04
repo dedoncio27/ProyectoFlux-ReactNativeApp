@@ -1,3 +1,4 @@
+import { auth } from "@/config/firebase";
 import {
     addExerciseToWorkout,
     AddExerciseToWorkoutInput,
@@ -66,7 +67,15 @@ export default function WorkoutsScreen() {
     // --- Estados ---
     const [workouts, setWorkouts] = useState<Workout[]>([]);
     const [loading, setLoading] = useState(true);
-    const [userId, setUserId] = useState("usuario@email.com"); // Cambia por el email/UID real de Firebase
+    const [userId, setUserId] = useState<string>(auth.currentUser?.email || "usuario@email.com");
+
+    // Suscripción al estado de autenticación para obtener el email dinámicamente
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            setUserId(user?.email || "usuario@email.com");
+        });
+        return () => unsubscribe();
+    }, []);
 
     // Modal crear entrenamiento
     const [modalVisible, setModalVisible] = useState(false);
@@ -81,10 +90,10 @@ export default function WorkoutsScreen() {
     const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
     const [saving, setSaving] = useState(false);
 
-    // --- Carga inicial ---
+    // --- Carga inicial (se recarga al cambiar userId) ---
     useEffect(() => {
         loadWorkouts();
-    }, []);
+    }, [userId]);
 
     const loadWorkouts = async () => {
         try {
@@ -269,7 +278,7 @@ export default function WorkoutsScreen() {
             <View style={[styles.header, { backgroundColor: theme.colors.primary, paddingTop: insets.top }]}>
                 <Appbar.Header mode="center-aligned" statusBarHeight={0} style={{ height: 70, backgroundColor: theme.colors.primary }}>
                     <Appbar.BackAction onPress={() => router.back()} color={theme.colors.onPrimary} />
-                    <Appbar.Content title="Mis Entrenamientos" titleStyle={{ color: theme.colors.onPrimary, fontWeight: "600", fontSize: 18 }} />
+                    <Appbar.Content title="Entrenamiento" titleStyle={{ color: theme.colors.onPrimary, fontWeight: "600", fontSize: 18 }} />
                 </Appbar.Header>
             </View>
 

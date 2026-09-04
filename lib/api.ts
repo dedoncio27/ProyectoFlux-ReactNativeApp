@@ -1,7 +1,7 @@
 // (En tu proyecto de la app móvil) lib/api.ts
 
 // URL base de la API. En desarrollo usa localhost (o tu IP), en producción leerá la de Vercel.
-const BASE_URL = 'https://flux-backend-e9flgx4cc-adrians-projects-3ead0681.vercel.app/api';
+const BASE_URL = 'https://flux-backend-adrians-projects-3ead0681.vercel.app/api';
 
 // const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://flux-backend-e9flgx4cc-adrians-projects-3ead0681.vercel.app/api';
 
@@ -148,5 +148,31 @@ export async function addExerciseToWorkout(
         body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error('Error al añadir ejercicio al entrenamiento');
+    return res.json();
+}
+
+export async function updateWorkoutExercises(
+    workoutId: number,
+    data: AddExerciseToWorkoutInput[]
+): Promise<{ count: number; exercises: any[] }> {
+    const res = await fetch(`${BASE_URL}/workouts/${workoutId}/exercises`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Error al actualizar ejercicios del entrenamiento');
+    return res.json();
+}
+
+export async function updateWorkout(
+    id: number,
+    data: { name: string }
+): Promise<Workout> {
+    const res = await fetch(`${BASE_URL}/workouts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Error al actualizar entrenamiento');
     return res.json();
 }

@@ -96,29 +96,29 @@ A continuación se detalla la organización de los directorios clave del proyect
 
 ```bash
 Flux/
-├── app/                  # Directorio principal de pantallas (Expo Router)
-│   ├── (tabs)/           # Pestañas principales de la navegación inferior
-│   │   ├── _layout.tsx   # Configuración visual de la barra de navegación inferior
-│   │   ├── foodscreen.tsx# Diario nutricional, calorías y macronutrientes
-│   │   ├── index.tsx     # Dashboard principal del estado metabólico y calendario
-│   │   ├── settings.tsx  # Pantalla de ajustes de la aplicación
-│   │   └── training.tsx  # Página inicial de entrenamientos
-│   ├── _layout.tsx       # Root layout con proveedores de temas y autenticación
-│   ├── login.tsx         # Pantalla de Login / Registro de Firebase
-│   ├── payment.tsx       # Interfaz premium y pasarela de donaciones con Stripe
-│   ├── workout.tsx       # Gestor y constructor de entrenamientos
-│   ├── calorySettings.tsx# Ajustes finos de macros y límites de calorías
-│   └── exercises.tsx     # Listado y visualización de la biblioteca de ejercicios
-├── assets/               # Recursos estáticos (Imágenes, Fuentes, Iconos)
-├── components/           # Componentes de React reutilizables (PlanNeonCard, AlimentoItem, etc.)
-├── config/               # Configuración de inicialización de Firebase
-├── constants/            # Constantes de estilos y colores del sistema
-├── context/              # Contextos globales de React (ej: ThemeContext para modo oscuro)
-├── hooks/                # Custom React Hooks compartidos
-├── lib/                  # Clientes de API REST e integraciones del servidor
-├── utils/                # Utilidades y gestores de almacenamiento local
-├── package.json          # Scripting del proyecto y dependencias de NPM
-└── app.json              # Configuración nativa global de Expo (Android/iOS)
+├── app/                   # Directorio principal de pantallas (Expo Router)
+│   ├── (tabs)/            # Pestañas principales de la navegación inferior
+│   │   ├── _layout.tsx    # Configuración visual de la barra de navegación inferior
+│   │   ├── foodscreen.tsx # Diario nutricional, calorías y macronutrientes
+│   │   ├── index.tsx      # Dashboard principal del estado metabólico y calendario
+│   │   ├── settings.tsx   # Pantalla de ajustes de la aplicación
+│   │   └── training.tsx   # Página inicial de entrenamientos
+│   ├── _layout.tsx        # Root layout con proveedores de temas y autenticación
+│   ├── login.tsx          # Pantalla de Login / Registro de Firebase
+│   ├── payment.tsx        # Interfaz premium y pasarela de donaciones con Stripe
+│   ├── workout.tsx        # Gestor y constructor de entrenamientos
+│   ├── calorySettings.tsx # Ajustes finos de macros y límites de calorías
+│   └── exercises.tsx      # Listado y visualización de la biblioteca de ejercicios
+├── assets/                # Recursos estáticos (Imágenes, Fuentes, Iconos)
+├── components/            # Componentes de React reutilizables (PlanNeonCard, AlimentoItem, etc.)
+├── config/                # Configuración de inicialización de Firebase
+├── constants/             # Constantes de estilos y colores del sistema
+├── context/               # Contextos globales de React (ej: ThemeContext para modo oscuro)
+├── hooks/                 # Custom React Hooks compartidos
+├── lib/                   # Clientes de API REST e integraciones del servidor
+├── utils/                 # Utilidades y gestores de almacenamiento local
+├── package.json           # Scripting del proyecto y dependencias de NPM
+└── app.json               # Configuración nativa global de Expo (Android/iOS)
 ```
 
 ---
